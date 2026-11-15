@@ -1,0 +1,854 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="indigo">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>ChronoPulse - Next-Gen Expressive Clock</title>
+  <meta name="description" content="A fluid, interactive, tactile clock app featuring tile-based alarms, world time traveler, precision stopwatch, multi-timers, and circadian sleep sounds.">
+  
+  <!-- Google Fonts: Plus Jakarta Sans & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,300;0,400;0,600;0,700;0,800;1,400&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            themePrimary: 'var(--primary)',
+            themeAccent: 'var(--accent)',
+            surfaceCard: 'var(--surface-card)',
+            textPrimary: 'var(--text-primary)',
+            textSecondary: 'var(--text-secondary)',
+          },
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace'],
+          }
+        }
+      }
+    }
+  </script>
+  
+  <!-- Lucide Icons & Canvas Confetti -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+
+  <!-- Custom Styles -->
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="min-h-screen text-slate-100 flex flex-col justify-between selection:bg-indigo-500 selection:text-white">
+
+  <!-- Top App Bar / Navigation -->
+  <header class="sticky top-0 z-40 backdrop-blur-xl bg-slate-950/70 border-b border-white/10 px-4 sm:px-8 py-3.5 transition-all duration-300">
+    <div class="max-w-7xl mx-auto flex items-center justify-between gap-3">
+      <!-- App Branding with Interactive Pulsing Orb -->
+      <div class="flex items-center gap-3 cursor-pointer group" onclick="switchTab('times')">
+        <div class="relative w-10 h-10 rounded-2xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-cyan-400 p-[2px] shadow-lg shadow-indigo-500/30 group-hover:scale-105 transition-transform duration-300">
+          <div class="w-full h-full bg-slate-900 rounded-[14px] flex items-center justify-center relative overflow-hidden">
+            <i data-lucide="clock" class="w-5 h-5 text-indigo-400 group-hover:rotate-12 transition-transform duration-300"></i>
+            <span class="absolute top-1 right-1 w-2 h-2 rounded-full bg-cyan-400 animate-ping"></span>
+          </div>
+        </div>
+        <div>
+          <div class="flex items-center gap-1.5">
+            <span class="font-extrabold text-lg tracking-tight bg-gradient-to-r from-white via-slate-100 to-indigo-200 bg-clip-text text-transparent">ChronoPulse</span>
+            <span class="text-[10px] uppercase font-bold tracking-widest px-1.5 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">M3E</span>
+          </div>
+          <p class="text-xs text-slate-400 hidden sm:block">Tactile Expressive Clock</p>
+        </div>
+      </div>
+
+      <!-- Quick Controls: Haptic Sounds, Nightstand Desk Mode, Theme Selector, 12/24h toggle -->
+      <div class="flex items-center gap-2 sm:gap-3">
+        <!-- 12h / 24h Toggle Pill -->
+        <button id="toggle-time-format" class="tactile-btn flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-semibold text-slate-300" title="Switch 12h / 24h format">
+          <span id="format-label">12H</span>
+        </button>
+
+        <!-- Sound FX Audio Haptics Toggle -->
+        <button id="btn-toggle-sound" class="tactile-btn p-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300" title="Toggle UI Sound Effects">
+          <i data-lucide="volume-2" id="sound-icon" class="w-4 h-4 text-indigo-400"></i>
+        </button>
+
+        <!-- Theme Switcher Dropdown Button -->
+        <div class="relative">
+          <button id="btn-theme-menu" class="tactile-btn flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-medium text-slate-200">
+            <span class="w-3 h-3 rounded-full bg-indigo-500 shadow-sm shadow-indigo-500/50" id="current-theme-dot"></span>
+            <span class="hidden md:inline" id="current-theme-label">Pixel Indigo</span>
+            <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400"></i>
+          </button>
+          <!-- Theme Picker Dropdown Menu -->
+          <div id="theme-dropdown" class="hidden absolute right-0 mt-2 w-48 rounded-2xl glass-panel p-2 shadow-2xl z-50 border border-white/15 animate-in fade-in slide-in-from-top-2 duration-200">
+            <div class="text-[11px] font-bold text-slate-400 px-2 py-1 uppercase tracking-wider">Dynamic Palette</div>
+            <button onclick="setAppTheme('indigo')" class="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-xs text-left hover:bg-white/10 text-slate-200">
+              <span class="w-3.5 h-3.5 rounded-full bg-[#4F46E5] ring-2 ring-indigo-400/30"></span> Pixel Indigo
+            </button>
+            <button onclick="setAppTheme('sunset')" class="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-xs text-left hover:bg-white/10 text-slate-200">
+              <span class="w-3.5 h-3.5 rounded-full bg-[#F97316] ring-2 ring-orange-400/30"></span> Sunset Coral
+            </button>
+            <button onclick="setAppTheme('sage')" class="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-xs text-left hover:bg-white/10 text-slate-200">
+              <span class="w-3.5 h-3.5 rounded-full bg-[#10B981] ring-2 ring-emerald-400/30"></span> Sage Emerald
+            </button>
+            <button onclick="setAppTheme('lavender')" class="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-xs text-left hover:bg-white/10 text-slate-200">
+              <span class="w-3.5 h-3.5 rounded-full bg-[#A855F7] ring-2 ring-purple-400/30"></span> Lavender Dream
+            </button>
+            <button onclick="setAppTheme('cyber')" class="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-xs text-left hover:bg-white/10 text-slate-200">
+              <span class="w-3.5 h-3.5 rounded-full bg-[#22C55E] ring-2 ring-green-400/30"></span> Cyber OLED Neon
+            </button>
+            <button onclick="setAppTheme('solar')" class="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-xs text-left hover:bg-white/10 text-slate-200">
+              <span class="w-3.5 h-3.5 rounded-full bg-[#EAB308] ring-2 ring-yellow-400/30"></span> Solar Amber
+            </button>
+          </div>
+        </div>
+
+        <!-- Ambient Fullscreen Nightstand Button -->
+        <button id="btn-nightstand" class="tactile-btn flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/40 text-indigo-300 text-xs font-semibold" title="Launch Ambient Desk / Nightstand Clock">
+          <i data-lucide="moon" class="w-3.5 h-3.5"></i>
+          <span class="hidden sm:inline">Desk Mode</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Morphing Navigation Tabs (Times, Alarms, Stopwatch, Timer, Sleep) -->
+    <div class="max-w-7xl mx-auto mt-3 flex items-center justify-center sm:justify-start overflow-x-auto no-scrollbar gap-1 sm:gap-2 pb-1">
+      <button class="nav-pill active tactile-btn" data-tab="times" onclick="switchTab('times')">
+        <i data-lucide="globe" class="w-4 h-4"></i>
+        <span>Times</span>
+      </button>
+      <button class="nav-pill tactile-btn" data-tab="alarms" onclick="switchTab('alarms')">
+        <i data-lucide="alarm-clock" class="w-4 h-4"></i>
+        <span>Alarms</span>
+        <span id="tab-alarm-badge" class="ml-1 text-[11px] px-1.5 py-0.2 rounded-full bg-white/20">3</span>
+      </button>
+      <button class="nav-pill tactile-btn" data-tab="stopwatch" onclick="switchTab('stopwatch')">
+        <i data-lucide="timer" class="w-4 h-4"></i>
+        <span>Stopwatch</span>
+      </button>
+      <button class="nav-pill tactile-btn" data-tab="timers" onclick="switchTab('timers')">
+        <i data-lucide="hourglass" class="w-4 h-4"></i>
+        <span>Timers</span>
+        <span id="tab-timer-badge" class="hidden ml-1 w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+      </button>
+      <button class="nav-pill tactile-btn" data-tab="sleep" onclick="switchTab('sleep')">
+        <i data-lucide="sparkles" class="w-4 h-4"></i>
+        <span>Sleep & Sounds</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Content Container -->
+  <main class="max-w-7xl mx-auto w-full px-4 sm:px-8 py-6 flex-1">
+
+    <!-- ========================================== -->
+    <!-- TAB 1: TIMES & WORLD CLOCK VIEW           -->
+    <!-- ========================================== -->
+    <section id="tab-content-times" class="tab-pane space-y-8">
+      <!-- Hero Main Interactive Clock Card -->
+      <div class="tactile-card glass-panel rounded-3xl p-6 sm:p-10 relative overflow-hidden border border-white/10 shadow-2xl">
+        <div class="absolute -right-20 -top-20 w-80 h-80 rounded-full bg-indigo-600/10 blur-3xl pointer-events-none"></div>
+        <div class="absolute -left-20 -bottom-20 w-80 h-80 rounded-full bg-cyan-600/10 blur-3xl pointer-events-none"></div>
+
+        <div class="relative z-10 flex flex-col lg:flex-row items-center justify-between gap-8">
+          
+          <!-- Left: Big Expressive Digital Clock & Calendar -->
+          <div class="text-center lg:text-left space-y-4 max-w-xl">
+            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs font-medium text-slate-300">
+              <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+              <span id="local-city-label">Your Local Time</span>
+              <span class="text-slate-500">•</span>
+              <span id="local-tz-abbr" class="text-indigo-300 font-mono">UTC</span>
+            </div>
+
+            <!-- Big Sculpted Digits -->
+            <div class="flex items-baseline justify-center lg:justify-start gap-2">
+              <span id="hero-clock-time" class="font-mono text-6xl sm:text-7xl md:text-8xl font-black tracking-tight text-white drop-shadow-sm font-mono-numbers">
+                00:00:00
+              </span>
+              <span id="hero-clock-period" class="text-2xl sm:text-3xl font-bold text-indigo-400 self-center tracking-wider">
+                AM
+              </span>
+            </div>
+
+            <!-- Date & Sun Cycle Info -->
+            <div class="flex flex-wrap items-center justify-center lg:justify-start gap-3 text-sm text-slate-300">
+              <div class="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/5 border border-white/10">
+                <i data-lucide="calendar" class="w-4 h-4 text-indigo-400"></i>
+                <span id="hero-clock-date" class="font-medium">Sunday, November 15, 2026</span>
+              </div>
+              <div class="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/5 border border-white/10">
+                <i data-lucide="sun" id="sun-moon-icon" class="w-4 h-4 text-amber-400"></i>
+                <span id="sun-cycle-text" class="text-slate-300 font-medium">Daytime</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right: Interactive Neomorphic Analog Clock Face -->
+          <div class="relative flex flex-col items-center">
+            <div class="relative w-56 h-56 sm:w-64 sm:h-64 rounded-full bg-slate-900/80 p-3 shadow-2xl border-2 border-white/10 group">
+              <!-- Animated outer decorative ring -->
+              <div class="absolute inset-0 rounded-full border border-indigo-500/20 pulse-gentle pointer-events-none"></div>
+
+              <svg id="hero-analog-clock" class="w-full h-full analog-clock-svg" viewBox="0 0 200 200">
+                <!-- Clock Face Dial Markers -->
+                <circle cx="100" cy="100" r="94" fill="rgba(15, 23, 42, 0.95)" stroke="rgba(255, 255, 255, 0.08)" stroke-width="2"/>
+                
+                <!-- Hour Ticks -->
+                <g id="clock-ticks" stroke="rgba(255, 255, 255, 0.3)" stroke-width="2">
+                  <!-- Generated dynamically in JS for crisp ticks -->
+                </g>
+
+                <!-- 12, 3, 6, 9 Cardinal Numbers -->
+                <text x="100" y="28" text-anchor="middle" font-size="12" font-weight="700" fill="#9CA3AF" font-family="'Plus Jakarta Sans'">12</text>
+                <text x="176" y="104" text-anchor="middle" font-size="12" font-weight="700" fill="#9CA3AF" font-family="'Plus Jakarta Sans'">3</text>
+                <text x="100" y="180" text-anchor="middle" font-size="12" font-weight="700" fill="#9CA3AF" font-family="'Plus Jakarta Sans'">6</text>
+                <text x="24" y="104" text-anchor="middle" font-size="12" font-weight="700" fill="#9CA3AF" font-family="'Plus Jakarta Sans'">9</text>
+
+                <!-- Hands -->
+                <line id="analog-hour" x1="100" y1="100" x2="100" y2="55" stroke-width="5" class="clock-hand-hour"/>
+                <line id="analog-minute" x1="100" y1="100" x2="100" y2="35" stroke-width="3.5" class="clock-hand-minute"/>
+                <line id="analog-second" x1="100" y1="115" x2="100" y2="25" stroke-width="2" class="clock-hand-second"/>
+
+                <!-- Center Cap -->
+                <circle cx="100" cy="100" r="6" class="clock-center-dot"/>
+                <circle cx="100" cy="100" r="2.5" fill="#FFFFFF"/>
+              </svg>
+            </div>
+            <span class="text-[11px] text-slate-400 mt-2 font-mono">Continuous 60FPS Sweep</span>
+          </div>
+
+        </div>
+
+        <!-- Interactive Time Traveler Scrubber (Innovative feature to see future/past hours across all world cities) -->
+        <div class="mt-8 pt-6 border-t border-white/10">
+          <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-2">
+            <div class="flex items-center gap-2">
+              <i data-lucide="compass" class="w-4 h-4 text-cyan-400"></i>
+              <span class="text-sm font-semibold text-white">Time Traveler Scrubber</span>
+              <span class="text-xs text-slate-400 hidden sm:inline">— drag to preview time across all cities</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span id="scrubber-offset-label" class="text-xs font-mono font-bold px-2 py-0.5 rounded-lg bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                Current Time (+0h)
+              </span>
+              <button id="btn-reset-scrubber" onclick="resetTimeScrubber()" class="tactile-btn text-xs text-slate-400 hover:text-white px-2 py-0.5 rounded bg-white/5">
+                Reset
+              </button>
+            </div>
+          </div>
+          <input type="range" id="time-scrubber-slider" min="-12" max="12" step="0.5" value="0" 
+                 class="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-500 focus:outline-none">
+          <div class="flex justify-between text-[10px] text-slate-500 font-mono mt-1">
+            <span>-12 hrs</span>
+            <span>-6 hrs</span>
+            <span>Now</span>
+            <span>+6 hrs</span>
+            <span>+12 hrs</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- World Cities Bento Grid Header -->
+      <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div>
+          <h2 class="text-xl font-bold tracking-tight text-white flex items-center gap-2">
+            <span>World Time Explorer</span>
+            <span id="city-count-badge" class="text-xs px-2 py-0.5 rounded-full bg-white/10 text-slate-300 font-mono">5 cities</span>
+          </h2>
+          <p class="text-xs text-slate-400">Keep track of colleagues, friends, and family across timezones</p>
+        </div>
+        <button onclick="openAddCityModal()" class="tactile-btn flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm shadow-lg shadow-indigo-600/30">
+          <i data-lucide="plus" class="w-4 h-4"></i>
+          <span>Add City</span>
+        </button>
+      </div>
+
+      <!-- World Cities Bento Grid Cards -->
+      <div id="world-cities-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <!-- Rendered dynamically by JS -->
+      </div>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- TAB 2: ALARMS VIEW (TILES BENTO GRID)     -->
+    <!-- ========================================== -->
+    <section id="tab-content-alarms" class="tab-pane hidden space-y-6">
+      
+      <!-- Alarms Banner Header & Quick Filter Pills -->
+      <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 glass-panel p-6 rounded-3xl border border-white/10">
+        <div>
+          <div class="flex items-center gap-2.5">
+            <h2 class="text-2xl font-black tracking-tight text-white">Alarms</h2>
+            <span class="text-xs font-bold px-2.5 py-1 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+              Interactive Tiles View
+            </span>
+          </div>
+          <p id="alarms-summary-text" class="text-sm text-slate-400 mt-1">
+            Loading next alarm...
+          </p>
+        </div>
+
+        <!-- Filter Chips & Add Alarm Button -->
+        <div class="flex flex-wrap items-center gap-2 w-full lg:w-auto justify-between lg:justify-end">
+          <div class="flex items-center gap-1.5 p-1 rounded-2xl bg-white/5 border border-white/10 overflow-x-auto text-xs font-semibold">
+            <button class="alarm-filter-chip px-3 py-1.5 rounded-xl bg-indigo-600 text-white tactile-btn" data-filter="all" onclick="filterAlarms('all')">All</button>
+            <button class="alarm-filter-chip px-3 py-1.5 rounded-xl text-slate-400 hover:text-white tactile-btn" data-filter="active" onclick="filterAlarms('active')">Active</button>
+            <button class="alarm-filter-chip px-3 py-1.5 rounded-xl text-slate-400 hover:text-white tactile-btn" data-filter="weekdays" onclick="filterAlarms('weekdays')">Weekdays</button>
+            <button class="alarm-filter-chip px-3 py-1.5 rounded-xl text-slate-400 hover:text-white tactile-btn" data-filter="weekends" onclick="filterAlarms('weekends')">Weekends</button>
+          </div>
+
+          <button onclick="openAlarmModal()" class="tactile-btn flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-indigo-400 text-white font-bold text-sm shadow-xl shadow-indigo-600/30">
+            <i data-lucide="plus" class="w-4 h-4"></i>
+            <span>New Alarm</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Bento Grid of Alarm Tiles (As specifically requested: "make the alarms tab as tiles instead of list") -->
+      <div id="alarms-tiles-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        <!-- Rendered dynamically by JS into rich interactive tiles -->
+      </div>
+
+      <!-- Empty State (if no alarms match) -->
+      <div id="alarms-empty-state" class="hidden flex-col items-center justify-center p-12 text-center glass-panel rounded-3xl border border-white/10">
+        <div class="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center text-slate-500 mb-3">
+          <i data-lucide="alarm-clock-off" class="w-8 h-8"></i>
+        </div>
+        <h3 class="text-lg font-bold text-white">No alarms found</h3>
+        <p class="text-sm text-slate-400 mt-1 max-w-sm">Tap the "+ New Alarm" button to create an alarm tile with custom days, rings, and gentle ramp-up.</p>
+        <button onclick="openAlarmModal()" class="mt-4 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold tactile-btn">
+          Create an Alarm
+        </button>
+      </div>
+
+    </section>
+
+    <!-- ========================================== -->
+    <!-- TAB 3: STOPWATCH VIEW                     -->
+    <!-- ========================================== -->
+    <section id="tab-content-stopwatch" class="tab-pane hidden space-y-6">
+      
+      <!-- Giant Stopwatch Card with Visual Progress Sweep -->
+      <div class="tactile-card glass-panel rounded-3xl p-6 sm:p-10 flex flex-col items-center justify-center relative overflow-hidden border border-white/10 shadow-2xl">
+        
+        <!-- Background Ambient Glow -->
+        <div class="absolute -top-32 w-96 h-96 rounded-full bg-indigo-500/15 blur-3xl pointer-events-none"></div>
+
+        <!-- Stopwatch Sweep Ring & Giant Digits -->
+        <div class="relative w-72 h-72 sm:w-84 sm:h-84 flex items-center justify-center my-4">
+          <!-- SVG Concentric Sweep Ring -->
+          <svg class="w-full h-full transform -rotate-90" viewBox="0 0 240 240">
+            <!-- Background Track -->
+            <circle cx="120" cy="120" r="105" stroke="rgba(255, 255, 255, 0.06)" stroke-width="10" fill="transparent"/>
+            <!-- Outer 60s Second Sweep Ring -->
+            <circle id="stopwatch-sweep-ring" cx="120" cy="120" r="105" stroke="var(--primary)" stroke-width="10" stroke-linecap="round" fill="transparent"
+                    stroke-dasharray="659.73" stroke-dashoffset="659.73" class="transition-all duration-75"/>
+            <!-- Inner Current Lap Ring -->
+            <circle cx="120" cy="120" r="88" stroke="rgba(255, 255, 255, 0.04)" stroke-width="6" fill="transparent"/>
+            <circle id="stopwatch-lap-ring" cx="120" cy="120" r="88" stroke="var(--accent)" stroke-width="6" stroke-linecap="round" fill="transparent"
+                    stroke-dasharray="552.92" stroke-dashoffset="552.92" class="transition-all duration-75"/>
+          </svg>
+
+          <!-- Digital Readout inside Ring -->
+          <div class="absolute inset-0 flex flex-col items-center justify-center text-center">
+            <span id="stopwatch-current-lap-label" class="text-[11px] font-mono uppercase tracking-widest text-slate-400">
+              Ready
+            </span>
+            <div class="flex items-baseline justify-center font-mono font-black tracking-tight text-white my-1 font-mono-numbers">
+              <span id="sw-min" class="text-4xl sm:text-5xl">00</span>
+              <span class="text-3xl sm:text-4xl text-indigo-400 mx-0.5">:</span>
+              <span id="sw-sec" class="text-4xl sm:text-5xl">00</span>
+              <span class="text-2xl sm:text-3xl text-cyan-400 ml-1">.</span>
+              <span id="sw-ms" class="text-2xl sm:text-3xl text-cyan-400">00</span>
+            </div>
+            <div id="sw-lap-delta-badge" class="text-xs font-mono text-slate-400 px-2 py-0.5 rounded-full bg-white/5">
+              Lap 1: 00:00.00
+            </div>
+          </div>
+        </div>
+
+        <!-- Stopwatch Tactile Interactive Controls -->
+        <div class="flex items-center gap-4 sm:gap-6 mt-4 z-10">
+          <!-- Reset Button -->
+          <button id="btn-sw-reset" onclick="resetStopwatch()" disabled class="tactile-btn flex flex-col items-center justify-center w-16 h-16 rounded-2xl bg-white/5 disabled:opacity-40 disabled:pointer-events-none hover:bg-white/10 border border-white/10 text-slate-300">
+            <i data-lucide="rotate-ccw" class="w-5 h-5"></i>
+            <span class="text-[10px] font-semibold mt-1">Reset</span>
+          </button>
+
+          <!-- Main Play / Pause Button with Spring physics -->
+          <button id="btn-sw-toggle" onclick="toggleStopwatch()" class="tactile-btn flex items-center justify-center w-20 h-20 rounded-3xl bg-gradient-to-tr from-indigo-600 to-indigo-400 hover:from-indigo-500 hover:to-indigo-300 text-white shadow-2xl shadow-indigo-600/50">
+            <i data-lucide="play" id="sw-play-icon" class="w-8 h-8 fill-white ml-1"></i>
+          </button>
+
+          <!-- Lap / Split Button -->
+          <button id="btn-sw-lap" onclick="recordStopwatchLap()" disabled class="tactile-btn flex flex-col items-center justify-center w-16 h-16 rounded-2xl bg-white/5 disabled:opacity-40 disabled:pointer-events-none hover:bg-white/10 border border-white/10 text-slate-300">
+            <i data-lucide="flag" class="w-5 h-5"></i>
+            <span class="text-[10px] font-semibold mt-1">Lap</span>
+          </button>
+        </div>
+
+      </div>
+
+      <!-- Lap History & Visualizer -->
+      <div id="stopwatch-laps-section" class="glass-panel rounded-3xl p-6 border border-white/10 space-y-4">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <i data-lucide="list-ordered" class="w-5 h-5 text-indigo-400"></i>
+            <h3 class="font-bold text-white text-base">Lap Times</h3>
+            <span id="lap-count-badge" class="text-xs px-2 py-0.5 rounded-full bg-white/10 text-slate-300 font-mono">0 laps</span>
+          </div>
+          <button id="btn-export-laps" onclick="exportLaps()" class="tactile-btn text-xs flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10">
+            <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+            <span>Copy Laps</span>
+          </button>
+        </div>
+
+        <!-- Laps List Container -->
+        <div id="laps-list" class="max-h-72 overflow-y-auto space-y-2 pr-1 divide-y divide-white/5">
+          <p class="text-sm text-slate-500 text-center py-6">No laps recorded yet. Start the stopwatch and tap "Lap" to record splits.</p>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ========================================== -->
+    <!-- TAB 4: TIMERS VIEW (MULTI-TIMER)          -->
+    <!-- ========================================== -->
+    <section id="tab-content-timers" class="tab-pane hidden space-y-6">
+      
+      <!-- Top Presets & Custom Timer Trigger -->
+      <div class="glass-panel p-6 rounded-3xl border border-white/10 space-y-4">
+        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div>
+            <h2 class="text-2xl font-black tracking-tight text-white">Timers</h2>
+            <p class="text-xs text-slate-400">Run multiple simultaneous timers for cooking, workouts, and pomodoros</p>
+          </div>
+          <button onclick="openAddTimerModal()" class="tactile-btn flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm shadow-xl shadow-indigo-600/30">
+            <i data-lucide="plus" class="w-4 h-4"></i>
+            <span>Custom Timer</span>
+          </button>
+        </div>
+
+        <!-- Quick 1-Tap Preset Chips -->
+        <div class="pt-2">
+          <div class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">Quick 1-Tap Presets</div>
+          <div class="flex flex-wrap gap-2">
+            <button onclick="startQuickTimer(60, '1 Min Tea 🫖')" class="tactile-btn px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-semibold text-slate-200">
+              1 min
+            </button>
+            <button onclick="startQuickTimer(180, '3 Min Eggs 🥚')" class="tactile-btn px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-semibold text-slate-200">
+              3 min
+            </button>
+            <button onclick="startQuickTimer(300, '5 Min Stretch 🧘')" class="tactile-btn px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-semibold text-slate-200">
+              5 min
+            </button>
+            <button onclick="startQuickTimer(600, '10 Min Break ☕')" class="tactile-btn px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-semibold text-slate-200">
+              10 min
+            </button>
+            <button onclick="startQuickTimer(900, '15 Min Power Nap ⚡')" class="tactile-btn px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-semibold text-slate-200">
+              15 min
+            </button>
+            <button onclick="startQuickTimer(1500, '25 Min Pomodoro 🍅')" class="tactile-btn px-3 py-2 rounded-xl bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/40 text-xs font-bold text-indigo-300">
+              25 min (Pomodoro)
+            </button>
+            <button onclick="startQuickTimer(2700, '45 Min Deep Work 🧠')" class="tactile-btn px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-semibold text-slate-200">
+              45 min
+            </button>
+            <button onclick="startQuickTimer(3600, '1 Hour Focus 🎯')" class="tactile-btn px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-semibold text-slate-200">
+              1 hour
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Active Timers Grid -->
+      <div id="active-timers-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        <!-- Rendered dynamically by JS -->
+      </div>
+
+    </section>
+
+    <!-- ========================================== -->
+    <!-- TAB 5: SLEEP & AMBIENT SOUNDS VIEW        -->
+    <!-- ========================================== -->
+    <section id="tab-content-sleep" class="tab-pane hidden space-y-8">
+      
+      <!-- Circadian Sleep Cycle Calculator -->
+      <div class="tactile-card glass-panel rounded-3xl p-6 sm:p-8 border border-white/10 shadow-2xl relative overflow-hidden">
+        <div class="absolute -right-20 -bottom-20 w-80 h-80 rounded-full bg-purple-600/10 blur-3xl pointer-events-none"></div>
+
+        <div class="flex items-center gap-3 mb-2">
+          <div class="w-10 h-10 rounded-2xl bg-purple-500/20 border border-purple-500/30 flex items-center justify-center text-purple-300">
+            <i data-lucide="moon-star" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h2 class="text-xl font-black text-white tracking-tight">Circadian Sleep Cycles</h2>
+            <p class="text-xs text-slate-400">Wake up between 90-minute REM cycles to feel energetic, not groggy</p>
+          </div>
+        </div>
+
+        <p class="text-sm text-slate-300 mt-4 mb-3">
+          If you go to sleep <strong class="text-white">right now</strong> (factoring in 14 minutes to fall asleep), the best times to wake up are:
+        </p>
+
+        <!-- Sleep Cycles Cards Grid -->
+        <div id="sleep-cycles-grid" class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <!-- Rendered dynamically in JS -->
+        </div>
+      </div>
+
+      <!-- Synthesized Ambient Sound Generator -->
+      <div class="tactile-card glass-panel rounded-3xl p-6 sm:p-8 border border-white/10 shadow-2xl space-y-6">
+        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-2xl bg-cyan-500/20 border border-cyan-500/30 flex items-center justify-center text-cyan-300">
+              <i data-lucide="headphones" class="w-5 h-5"></i>
+            </div>
+            <div>
+              <h2 class="text-xl font-black text-white tracking-tight">Ambient Sleep & Focus Synthesizer</h2>
+              <p class="text-xs text-slate-400">Pure Web Audio generated acoustic environments — no buffering or ads</p>
+            </div>
+          </div>
+
+          <!-- Master Sound Play/Stop & Sleep Timer -->
+          <div class="flex items-center gap-2">
+            <button id="btn-ambient-stop" onclick="stopAmbientSound()" class="hidden tactile-btn text-xs px-3 py-1.5 rounded-xl bg-red-500/20 text-red-300 border border-red-500/30">
+              Stop Audio
+            </button>
+            <div class="flex items-center gap-1.5 text-xs text-slate-400 bg-white/5 px-2.5 py-1 rounded-xl border border-white/10">
+              <i data-lucide="timer-reset" class="w-3.5 h-3.5 text-indigo-400"></i>
+              <span id="ambient-timer-label">Off</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Ambient Sound Tiles -->
+        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
+          <!-- Rain -->
+          <button onclick="toggleAmbientSound('rain')" class="ambient-sound-card tactile-btn p-4 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 flex flex-col items-center justify-center text-center gap-2" data-sound="rain">
+            <span class="text-2xl">🌧️</span>
+            <span class="text-xs font-bold text-slate-200">Gentle Rain</span>
+          </button>
+          <!-- Waves -->
+          <button onclick="toggleAmbientSound('waves')" class="ambient-sound-card tactile-btn p-4 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 flex flex-col items-center justify-center text-center gap-2" data-sound="waves">
+            <span class="text-2xl">🌊</span>
+            <span class="text-xs font-bold text-slate-200">Ocean Surf</span>
+          </button>
+          <!-- Campfire -->
+          <button onclick="toggleAmbientSound('fire')" class="ambient-sound-card tactile-btn p-4 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 flex flex-col items-center justify-center text-center gap-2" data-sound="fire">
+            <span class="text-2xl">🔥</span>
+            <span class="text-xs font-bold text-slate-200">Campfire</span>
+          </button>
+          <!-- Crickets -->
+          <button onclick="toggleAmbientSound('crickets')" class="ambient-sound-card tactile-btn p-4 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 flex flex-col items-center justify-center text-center gap-2" data-sound="crickets">
+            <span class="text-2xl">🦗</span>
+            <span class="text-xs font-bold text-slate-200">Night Forest</span>
+          </button>
+          <!-- Deep Space Drone -->
+          <button onclick="toggleAmbientSound('space')" class="ambient-sound-card tactile-btn p-4 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 flex flex-col items-center justify-center text-center gap-2" data-sound="space">
+            <span class="text-2xl">🌌</span>
+            <span class="text-xs font-bold text-slate-200">Deep Space</span>
+          </button>
+          <!-- White Noise -->
+          <button onclick="toggleAmbientSound('white')" class="ambient-sound-card tactile-btn p-4 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 flex flex-col items-center justify-center text-center gap-2" data-sound="white">
+            <span class="text-2xl">📻</span>
+            <span class="text-xs font-bold text-slate-200">White Noise</span>
+          </button>
+        </div>
+
+        <!-- Volume Slider & Auto-off Timer Pills -->
+        <div class="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-white/10">
+          <div class="flex items-center gap-3 w-full sm:w-64">
+            <i data-lucide="volume-1" class="w-4 h-4 text-slate-400"></i>
+            <input type="range" id="ambient-volume" min="0" max="1" step="0.05" value="0.5" 
+                   oninput="setAmbientVolume(this.value)"
+                   class="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-cyan-400">
+            <i data-lucide="volume-2" class="w-4 h-4 text-slate-400"></i>
+          </div>
+
+          <div class="flex items-center gap-1.5 text-xs">
+            <span class="text-slate-400 mr-1">Auto-stop:</span>
+            <button onclick="setAmbientSleepTimer(15)" class="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300">15m</button>
+            <button onclick="setAmbientSleepTimer(30)" class="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300">30m</button>
+            <button onclick="setAmbientSleepTimer(60)" class="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300">60m</button>
+            <button onclick="setAmbientSleepTimer(0)" class="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-slate-400">None</button>
+          </div>
+        </div>
+
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- ========================================== -->
+  <!-- PERSISTENT FLOATING DYNAMIC ISLAND         -->
+  <!-- ========================================== -->
+  <div id="dynamic-island" class="hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-40 floating-island rounded-full px-5 py-2.5 flex items-center gap-3 bg-slate-900/90 border border-white/15">
+    <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping"></span>
+    <span id="island-timer-icon" class="text-base">⏳</span>
+    <div class="flex flex-col">
+      <span id="island-label" class="text-[11px] font-bold text-slate-300 leading-tight">Timer Running</span>
+      <span id="island-time" class="font-mono text-sm font-bold text-white font-mono-numbers">04:52</span>
+    </div>
+    <button onclick="jumpToActiveTimer()" class="ml-2 text-xs font-semibold px-2.5 py-1 rounded-full bg-indigo-600 hover:bg-indigo-500 text-white tactile-btn">
+      View
+    </button>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- MODAL: ADD / EDIT ALARM (EXPRESSIVE DIAL)  -->
+  <!-- ========================================== -->
+  <div id="modal-alarm" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
+    <div class="tactile-card glass-panel w-full max-w-lg rounded-3xl p-6 sm:p-8 border border-white/15 shadow-2xl space-y-6 relative animate-in fade-in zoom-in-95 duration-200">
+      
+      <div class="flex items-center justify-between">
+        <h3 id="modal-alarm-title" class="text-xl font-black text-white tracking-tight">Create Alarm</h3>
+        <button onclick="closeAlarmModal()" class="tactile-btn p-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- Expressive Time Drum Picker -->
+      <div class="flex items-center justify-center gap-3 py-2 bg-slate-900/60 rounded-3xl border border-white/5 p-4">
+        <!-- Hour Input -->
+        <div class="flex flex-col items-center">
+          <button onclick="bumpModalHour(1)" class="p-1 text-slate-400 hover:text-white"><i data-lucide="chevron-up" class="w-5 h-5"></i></button>
+          <input type="text" id="modal-alarm-hour" maxlength="2" value="07" class="w-20 text-center font-mono text-5xl font-extrabold bg-transparent text-white focus:outline-none select-all font-mono-numbers">
+          <button onclick="bumpModalHour(-1)" class="p-1 text-slate-400 hover:text-white"><i data-lucide="chevron-down" class="w-5 h-5"></i></button>
+        </div>
+        <span class="text-4xl font-mono font-bold text-indigo-400 pb-2">:</span>
+        <!-- Minute Input -->
+        <div class="flex flex-col items-center">
+          <button onclick="bumpModalMinute(5)" class="p-1 text-slate-400 hover:text-white"><i data-lucide="chevron-up" class="w-5 h-5"></i></button>
+          <input type="text" id="modal-alarm-minute" maxlength="2" value="00" class="w-20 text-center font-mono text-5xl font-extrabold bg-transparent text-white focus:outline-none select-all font-mono-numbers">
+          <button onclick="bumpModalMinute(-5)" class="p-1 text-slate-400 hover:text-white"><i data-lucide="chevron-down" class="w-5 h-5"></i></button>
+        </div>
+        <!-- AM/PM Toggle Pill -->
+        <div id="modal-alarm-ampm-wrapper" class="flex flex-col gap-1 ml-2">
+          <button type="button" id="modal-ampm-am" onclick="setModalAmPm('AM')" class="px-3 py-1.5 rounded-xl text-xs font-bold bg-indigo-600 text-white tactile-btn">AM</button>
+          <button type="button" id="modal-ampm-pm" onclick="setModalAmPm('PM')" class="px-3 py-1.5 rounded-xl text-xs font-bold bg-white/5 text-slate-400 hover:text-white tactile-btn">PM</button>
+        </div>
+      </div>
+
+      <!-- Quick Time Presets -->
+      <div class="flex flex-wrap gap-2 justify-center">
+        <button type="button" onclick="setModalTime(6, 30, 'AM')" class="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-xs text-slate-300">06:30 AM</button>
+        <button type="button" onclick="setModalTime(7, 0, 'AM')" class="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-xs text-slate-300">07:00 AM</button>
+        <button type="button" onclick="setModalTime(7, 30, 'AM')" class="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-xs text-slate-300">07:30 AM</button>
+        <button type="button" onclick="setModalTime(8, 0, 'AM')" class="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-xs text-slate-300">08:00 AM</button>
+      </div>
+
+      <!-- Alarm Label & Emoji Picker -->
+      <div class="space-y-1.5">
+        <label class="text-xs font-bold text-slate-400 uppercase tracking-wider">Alarm Label & Category</label>
+        <div class="flex items-center gap-2">
+          <input type="text" id="modal-alarm-label" placeholder="e.g., Morning Workout 🏋️" class="w-full px-4 py-2.5 rounded-2xl bg-white/5 border border-white/10 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-indigo-500">
+        </div>
+        <div class="flex flex-wrap gap-1.5 pt-1">
+          <button type="button" onclick="setModalLabelPreset('Wake Up 🌅')" class="text-xs px-2 py-0.5 rounded bg-white/5 text-slate-400 hover:text-white">🌅 Wake Up</button>
+          <button type="button" onclick="setModalLabelPreset('Workout 🏋️')" class="text-xs px-2 py-0.5 rounded bg-white/5 text-slate-400 hover:text-white">🏋️ Workout</button>
+          <button type="button" onclick="setModalLabelPreset('Standup 💼')" class="text-xs px-2 py-0.5 rounded bg-white/5 text-slate-400 hover:text-white">💼 Standup</button>
+          <button type="button" onclick="setModalLabelPreset('Take Meds 💊')" class="text-xs px-2 py-0.5 rounded bg-white/5 text-slate-400 hover:text-white">💊 Meds</button>
+        </div>
+      </div>
+
+      <!-- Repeat Days Selector -->
+      <div class="space-y-1.5">
+        <div class="flex justify-between items-center">
+          <label class="text-xs font-bold text-slate-400 uppercase tracking-wider">Repeat Days</label>
+          <div class="flex gap-2 text-xs">
+            <button type="button" onclick="setModalDaysPreset('weekdays')" class="text-indigo-400 hover:underline">Weekdays</button>
+            <span class="text-slate-600">•</span>
+            <button type="button" onclick="setModalDaysPreset('all')" class="text-indigo-400 hover:underline">Everyday</button>
+          </div>
+        </div>
+        <div class="flex items-center justify-between gap-1 pt-1">
+          <button type="button" class="day-pill inactive modal-day" data-day="0" onclick="toggleModalDay(0)">S</button>
+          <button type="button" class="day-pill active modal-day" data-day="1" onclick="toggleModalDay(1)">M</button>
+          <button type="button" class="day-pill active modal-day" data-day="2" onclick="toggleModalDay(2)">T</button>
+          <button type="button" class="day-pill active modal-day" data-day="3" onclick="toggleModalDay(3)">W</button>
+          <button type="button" class="day-pill active modal-day" data-day="4" onclick="toggleModalDay(4)">T</button>
+          <button type="button" class="day-pill active modal-day" data-day="5" onclick="toggleModalDay(5)">F</button>
+          <button type="button" class="day-pill inactive modal-day" data-day="6" onclick="toggleModalDay(6)">S</button>
+        </div>
+      </div>
+
+      <!-- Ringtone Sound & Gentle Wake Up -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+        <div>
+          <label class="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1">Ringtone</label>
+          <div class="flex items-center gap-1.5">
+            <select id="modal-alarm-sound" class="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-white text-xs focus:outline-none">
+              <option value="chime">Cosmic Chime</option>
+              <option value="marimba">Zen Marimba</option>
+              <option value="bells">Radiant Bells</option>
+              <option value="pulse">Cyber Pulse</option>
+              <option value="bird">Morning Birdsong</option>
+            </select>
+            <button type="button" onclick="previewCurrentModalSound()" class="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-indigo-400" title="Preview Ringtone">
+              <i data-lucide="play" class="w-4 h-4"></i>
+            </button>
+          </div>
+        </div>
+
+        <div>
+          <label class="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1">Gentle Volume Ramp</label>
+          <label class="flex items-center gap-2 cursor-pointer mt-2 text-xs text-slate-300">
+            <input type="checkbox" id="modal-gentle-wake" checked class="w-4 h-4 rounded text-indigo-600 bg-white/10 border-white/20">
+            <span>Ramp up over 60s</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="flex items-center justify-end gap-3 pt-4 border-t border-white/10">
+        <button type="button" onclick="closeAlarmModal()" class="px-5 py-2.5 rounded-2xl bg-white/5 hover:bg-white/10 text-slate-300 text-sm font-semibold tactile-btn">
+          Cancel
+        </button>
+        <button type="button" onclick="saveAlarmFromModal()" class="px-6 py-2.5 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold shadow-lg shadow-indigo-600/30 tactile-btn">
+          Save Alarm
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- MODAL: ADD WORLD CITY                      -->
+  <!-- ========================================== -->
+  <div id="modal-add-city" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
+    <div class="tactile-card glass-panel w-full max-w-md rounded-3xl p-6 border border-white/15 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between">
+        <h3 class="text-lg font-black text-white">Add World City</h3>
+        <button onclick="closeAddCityModal()" class="p-2 rounded-xl bg-white/5 text-slate-400 hover:text-white">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+      <input type="text" id="city-search-input" oninput="searchCityFilter(this.value)" placeholder="Search city (e.g., Tokyo, London, Sydney)..." class="w-full px-4 py-2.5 rounded-2xl bg-white/5 border border-white/10 text-white text-sm focus:outline-none focus:border-indigo-500">
+      <div id="city-search-results" class="max-h-60 overflow-y-auto space-y-1.5 pr-1 divide-y divide-white/5">
+        <!-- Rendered dynamically -->
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- MODAL: CUSTOM TIMER CREATOR                -->
+  <!-- ========================================== -->
+  <div id="modal-add-timer" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
+    <div class="tactile-card glass-panel w-full max-w-md rounded-3xl p-6 border border-white/15 shadow-2xl space-y-5">
+      <div class="flex items-center justify-between">
+        <h3 class="text-lg font-black text-white">Custom Timer</h3>
+        <button onclick="closeAddTimerModal()" class="p-2 rounded-xl bg-white/5 text-slate-400 hover:text-white">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- Time Input Wheels: H M S -->
+      <div class="grid grid-cols-3 gap-3 text-center bg-slate-900/60 p-4 rounded-2xl border border-white/5">
+        <div>
+          <label class="text-[10px] uppercase font-bold text-slate-400">Hours</label>
+          <input type="number" id="timer-input-hours" min="0" max="23" value="0" class="w-full text-center text-3xl font-mono font-bold bg-transparent text-white focus:outline-none">
+        </div>
+        <div>
+          <label class="text-[10px] uppercase font-bold text-slate-400">Minutes</label>
+          <input type="number" id="timer-input-minutes" min="0" max="59" value="10" class="w-full text-center text-3xl font-mono font-bold bg-transparent text-white focus:outline-none">
+        </div>
+        <div>
+          <label class="text-[10px] uppercase font-bold text-slate-400">Seconds</label>
+          <input type="number" id="timer-input-seconds" min="0" max="59" value="0" class="w-full text-center text-3xl font-mono font-bold bg-transparent text-white focus:outline-none">
+        </div>
+      </div>
+
+      <div>
+        <label class="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1">Label</label>
+        <input type="text" id="timer-input-label" placeholder="e.g. Pasta 🍝, Face Mask 🧖" class="w-full px-4 py-2.5 rounded-2xl bg-white/5 border border-white/10 text-white text-sm focus:outline-none">
+      </div>
+
+      <div class="flex justify-end gap-3 pt-2">
+        <button onclick="closeAddTimerModal()" class="px-4 py-2 rounded-xl bg-white/5 text-slate-300 text-xs font-semibold">Cancel</button>
+        <button onclick="createCustomTimerFromModal()" class="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-lg shadow-indigo-600/30">Start Timer</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- MODAL: ALARM RINGER ACTIVE SCREEN          -->
+  <!-- ========================================== -->
+  <div id="modal-alarm-ringer" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/95 backdrop-blur-xl">
+    <div class="text-center space-y-6 max-w-md w-full relative">
+      <!-- Pulsing Ring Waves -->
+      <div class="relative w-40 h-40 mx-auto flex items-center justify-center">
+        <div class="absolute inset-0 rounded-full bg-indigo-500/30 ring-waves"></div>
+        <div class="absolute inset-4 rounded-full bg-indigo-500/40 ring-waves" style="animation-delay: 0.5s;"></div>
+        <div class="relative w-24 h-24 rounded-full bg-gradient-to-tr from-indigo-600 to-cyan-400 flex items-center justify-center shadow-2xl shadow-indigo-500/50">
+          <i data-lucide="alarm-clock" class="w-12 h-12 text-white animate-bounce"></i>
+        </div>
+      </div>
+
+      <div class="space-y-2">
+        <h2 id="ringer-time" class="text-6xl font-black font-mono tracking-tight text-white font-mono-numbers">07:00 AM</h2>
+        <p id="ringer-label" class="text-xl font-bold text-indigo-300">Morning Workout 🏋️</p>
+        <p class="text-xs text-slate-400">Alarm ringing now</p>
+      </div>
+
+      <!-- Snooze & Dismiss Action Buttons -->
+      <div class="flex flex-col sm:flex-row items-center justify-center gap-3 pt-4">
+        <button onclick="snoozeAlarm(5)" class="w-full sm:w-auto px-6 py-3.5 rounded-2xl bg-white/10 hover:bg-white/20 text-white font-bold text-sm tactile-btn border border-white/10">
+          Snooze 5 min 💤
+        </button>
+        <button onclick="dismissAlarm()" class="w-full sm:w-auto px-8 py-3.5 rounded-2xl bg-gradient-to-r from-red-600 to-rose-500 hover:from-red-500 hover:to-rose-400 text-white font-black text-sm shadow-xl shadow-red-600/40 tactile-btn">
+          Dismiss ⏰
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- FULLSCREEN AMBIENT DESK / NIGHTSTAND MODE  -->
+  <!-- ========================================== -->
+  <div id="ambient-nightstand-overlay" class="hidden ambient-nightstand-mode" onclick="exitNightstandMode()">
+    <div class="text-center space-y-4 select-none" id="nightstand-drift-container">
+      <div id="nightstand-time" class="font-mono text-7xl sm:text-9xl md:text-[11rem] font-black tracking-tight text-white/90 drop-shadow-2xl font-mono-numbers">
+        00:00
+      </div>
+      <div class="flex items-center justify-center gap-3 text-slate-400 text-lg sm:text-xl font-medium">
+        <span id="nightstand-period" class="text-indigo-400 font-bold">AM</span>
+        <span>•</span>
+        <span id="nightstand-date">Sunday, Nov 15</span>
+      </div>
+      <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs text-slate-400 mt-4">
+        <i data-lucide="bell" class="w-3.5 h-3.5 text-indigo-400"></i>
+        <span id="nightstand-next-alarm">Next alarm: 07:00 AM</span>
+      </div>
+      <p class="text-[11px] text-slate-600 pt-6">Tap anywhere to exit Desk Mode</p>
+    </div>
+  </div>
+
+  <!-- Toast Notification Capsule -->
+  <div id="toast-container" class="fixed top-5 left-1/2 -translate-x-1/2 z-50 pointer-events-none transition-all duration-300 opacity-0 -translate-y-4">
+    <div id="toast-content" class="px-4 py-2 rounded-2xl bg-slate-900/90 text-white text-xs font-semibold border border-white/15 shadow-2xl flex items-center gap-2 backdrop-blur-md">
+      <i data-lucide="check-circle" class="w-4 h-4 text-emerald-400"></i>
+      <span id="toast-text">Success</span>
+    </div>
+  </div>
+
+  <!-- Footer Info -->
+  <footer class="mt-8 border-t border-white/5 py-4 px-4 text-center text-xs text-slate-500">
+    <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
+      <div class="flex items-center gap-2">
+        <span class="w-2 h-2 rounded-full bg-indigo-500"></span>
+        <span>ChronoPulse • Fluid Material 3 Expressive Clock</span>
+      </div>
+      <div>Designed with tactile physics, audio synthesis, and bento tiles</div>
+    </div>
+  </footer>
+
+  <!-- Main JavaScript Logic -->
+  <script src="app.js"></script>
+</body>
+</html>
