@@ -52,6 +52,18 @@
       "created_at": "2026-11-15T18:44:46.555Z",
       "sender": "macOS",
       "is_cancelled": false
+    },
+    {
+      "id": "6f34a7b7-11db-4992-b8f4-4b2bbeb41159",
+      "role": "user",
+      "content": "few things, change the name at the top",
+      "status": "cancelled",
+      "model": "gemini-3.8-flash-high",
+      "client_type": "gemini-bridge",
+      "parent_message_id": null,
+      "created_at": "2026-11-15T18:46:11.833Z",
+      "sender": "ios",
+      "is_cancelled": true
     }
   ]
 }
