@@ -64,6 +64,18 @@
       "created_at": "2026-11-15T18:46:11.833Z",
       "sender": "ios",
       "is_cancelled": true
+    },
+    {
+      "id": "fedb54ee-8d94-47a4-9d42-329a6232012f",
+      "role": "user",
+      "content": "few things, change the name at the top. remove it completely, i don't want there to be a 📛.",
+      "status": "cancelled",
+      "model": "gemini-3.8-flash-high",
+      "client_type": "gemini-bridge",
+      "parent_message_id": null,
+      "created_at": "2026-11-15T18:46:50.403Z",
+      "sender": "ios",
+      "is_cancelled": true
     }
   ]
 }
