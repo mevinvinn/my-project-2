@@ -4,5 +4,18 @@
   "createdAt": "2026-11-15T18:36:50.819Z",
   "filename": "d358d976-305f-44d2-830e-7e751a2b6186.json",
   "geminiStarted": false,
-  "messages": []
+  "messages": [
+    {
+      "id": "8c7a8fef-dc0e-4e11-a90f-d0c49815d026",
+      "role": "user",
+      "content": "I want to have a better clock app, to replace my existing google clocks app. It seems so boring, no animations and just plane. I want u to make one with the same functionality and same tabs such as alarms, times, stop watch etc. but give it a more unique feel, different ui. don't take inspiration from Google clocks, make the alarms tab as tiles instead of list. it should include that new Google UI interactive",
+      "status": "pending",
+      "model": "gemini-3.8-flash-high",
+      "client_type": "gemini-bridge",
+      "parent_message_id": null,
+      "created_at": "2026-11-15T18:37:40.184Z",
+      "sender": "ios",
+      "is_cancelled": false
+    }
+  ]
 }
